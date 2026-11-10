@@ -1,0 +1,665 @@
+from json.decoder import NaN
+
+import requests
+import os
+# import smtplib
+# import json
+import datetime as dt
+import pandas as pd
+
+my_email = os.environ.get("ENV_EMAIL")
+API_KEY = os.environ.get("ENV_API_KEY")
+
+# out_email = os.environ.get("ENV_OUT_EMAIL")
+# password = os.environ.get("ENV_EMAIL_APP_PASSWORD")
+
+# message_to_send = ""
+url_endpoint = "https://api.marketstack.com/v2/eod"
+
+import datetime
+
+# 1. Define the end date (today) and the start date (30 days ago)
+
+
+
+class StockLens:
+    def __init__(self):
+        self.test_stock_json = {
+            "pagination": {
+                "limit": 100,
+                "offset": 0,
+                "count": 22,
+                "total": 22
+            },
+            "data": [
+                {
+                    "open": 346.715,
+                    "high": 349.19,
+                    "low": 334.35,
+                    "close": 344.63,
+                    "volume": 67841555,
+                    "adj_high": 349.19,
+                    "adj_low": 334.35,
+                    "adj_close": 344.63,
+                    "adj_open": 346.715,
+                    "adj_volume": 67841555,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "TEST DATA - DO NOT USE FOR PRODUCTION",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-30T00:00:00+0000"
+                },
+                {
+                    "open": 348,
+                    "high": 351.43,
+                    "low": 347.3,
+                    "close": 348.91,
+                    "volume": 41340227,
+                    "adj_high": 351.43,
+                    "adj_low": 347.3,
+                    "adj_close": 348.91,
+                    "adj_open": 348,
+                    "adj_volume": 42582126,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-29T00:00:00+0000"
+                },
+                {
+                    "open": 346.885,
+                    "high": 347.18,
+                    "low": 343.53,
+                    "close": 343.83,
+                    "volume": 34405006,
+                    "adj_high": 347.18,
+                    "adj_low": 343.53,
+                    "adj_close": 343.83,
+                    "adj_open": 346.885,
+                    "adj_volume": 35714331,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-28T00:00:00+0000"
+                },
+                {
+                    "open": 343.165,
+                    "high": 347.78,
+                    "low": 342.39,
+                    "close": 347.1,
+                    "volume": 39051747,
+                    "adj_high": 347.78,
+                    "adj_low": 342.39,
+                    "adj_close": 347.1,
+                    "adj_open": 343.165,
+                    "adj_volume": 39984395,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-27T00:00:00+0000"
+                },
+                {
+                    "open": 343.9,
+                    "high": 347.09,
+                    "low": 341.03,
+                    "close": 343.91,
+                    "volume": 42263954,
+                    "adj_high": 347.09,
+                    "adj_low": 341.03,
+                    "adj_close": 343.91,
+                    "adj_open": 343.9,
+                    "adj_volume": 42743575,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-26T00:00:00+0000"
+                },
+                {
+                    "open": 349.115,
+                    "high": 351.73,
+                    "low": 345.75,
+                    "close": 347.725,
+                    "volume": 39539690,
+                    "adj_high": 351.73,
+                    "adj_low": 345.75,
+                    "adj_close": 347.725,
+                    "adj_open": 349.115,
+                    "adj_volume": 39539690,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-23T00:00:00+0000"
+                },
+                {
+                    "open": 344.935,
+                    "high": 348.36,
+                    "low": 342.28,
+                    "close": 348.22,
+                    "volume": 46659852,
+                    "adj_high": 348.36,
+                    "adj_low": 342.28,
+                    "adj_close": 348.22,
+                    "adj_open": 344.935,
+                    "adj_volume": 46898875,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-22T00:00:00+0000"
+                },
+                {
+                    "open": 339.205,
+                    "high": 345.22,
+                    "low": 338.83,
+                    "close": 343.99,
+                    "volume": 35368592,
+                    "adj_high": 345.22,
+                    "adj_low": 338.83,
+                    "adj_close": 343.99,
+                    "adj_open": 339.205,
+                    "adj_volume": 35614126,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-21T00:00:00+0000"
+                },
+                {
+                    "open": 339.608,
+                    "high": 343.06,
+                    "low": 338.7,
+                    "close": 339.5,
+                    "volume": 35678066,
+                    "adj_high": 343.06,
+                    "adj_low": 338.7,
+                    "adj_close": 339.5,
+                    "adj_open": 339.608,
+                    "adj_volume": 35851382,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-20T00:00:00+0000"
+                },
+                {
+                    "open": 340.975,
+                    "high": 345.99,
+                    "low": 340.115,
+                    "close": 342.94,
+                    "volume": 34524344,
+                    "adj_high": 345.99,
+                    "adj_low": 340.115,
+                    "adj_close": 342.94,
+                    "adj_open": 340.975,
+                    "adj_volume": 34573181,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-19T00:00:00+0000"
+                },
+                {
+                    "open": 346.09,
+                    "high": 347.82,
+                    "low": 340.46,
+                    "close": 343.46,
+                    "volume": 59895300,
+                    "adj_high": 347.82,
+                    "adj_low": 340.46,
+                    "adj_close": 343.46,
+                    "adj_open": 346.09,
+                    "adj_volume": 59946368,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-16T00:00:00+0000"
+                },
+                {
+                    "open": 346.95,
+                    "high": 347.85,
+                    "low": 341.6,
+                    "close": 342,
+                    "volume": 39678300,
+                    "adj_high": 347.85,
+                    "adj_low": 341.6,
+                    "adj_close": 342,
+                    "adj_open": 346.95,
+                    "adj_volume": 39767256,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-15T00:00:00+0000"
+                },
+                {
+                    "open": 344.61,
+                    "high": 347.09,
+                    "low": 341.72,
+                    "close": 342.96,
+                    "volume": 49861700,
+                    "adj_high": 347.09,
+                    "adj_low": 341.72,
+                    "adj_close": 342.96,
+                    "adj_open": 344.61,
+                    "adj_volume": 50061053,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-14T00:00:00+0000"
+                },
+                {
+                    "open": 344.67,
+                    "high": 348.15,
+                    "low": 340.74,
+                    "close": 341.27,
+                    "volume": 38946900,
+                    "adj_high": 348.15,
+                    "adj_low": 340.74,
+                    "adj_close": 341.27,
+                    "adj_open": 344.67,
+                    "adj_volume": 38983839,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-13T00:00:00+0000"
+                },
+                {
+                    "open": 338.22,
+                    "high": 342.63,
+                    "low": 337.6,
+                    "close": 340.97,
+                    "volume": 25848300,
+                    "adj_high": 342.63,
+                    "adj_low": 337.6,
+                    "adj_close": 340.97,
+                    "adj_open": 338.22,
+                    "adj_volume": 25900599,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-12T00:00:00+0000"
+                },
+                {
+                    "open": 331.7,
+                    "high": 338.61,
+                    "low": 330.7,
+                    "close": 336.64,
+                    "volume": 37855000,
+                    "adj_high": 338.61,
+                    "adj_low": 330.7,
+                    "adj_close": 336.64,
+                    "adj_open": 331.7,
+                    "adj_volume": 37881199,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-09T00:00:00+0000"
+                },
+                {
+                    "open": 336.82,
+                    "high": 341.57,
+                    "low": 335.9,
+                    "close": 340.42,
+                    "volume": 35279900,
+                    "adj_high": 341.57,
+                    "adj_low": 335.9,
+                    "adj_close": 340.42,
+                    "adj_open": 336.82,
+                    "adj_volume": 35332449,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-08T00:00:00+0000"
+                },
+                {
+                    "open": 336.96,
+                    "high": 338.67,
+                    "low": 332.78,
+                    "close": 336.67,
+                    "volume": 34128200,
+                    "adj_high": 338.67,
+                    "adj_low": 332.78,
+                    "adj_close": 336.67,
+                    "adj_open": 336.96,
+                    "adj_volume": 34147860,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-07T00:00:00+0000"
+                },
+                {
+                    "open": 332.28,
+                    "high": 334.38,
+                    "low": 330.62,
+                    "close": 333.63,
+                    "volume": 30425700,
+                    "adj_high": 334.38,
+                    "adj_low": 330.62,
+                    "adj_close": 333.63,
+                    "adj_open": 332.28,
+                    "adj_volume": 30449005,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-06T00:00:00+0000"
+                },
+                {
+                    "open": 332.82,
+                    "high": 336.21,
+                    "low": 331.65,
+                    "close": 332.89,
+                    "volume": 34350900,
+                    "adj_high": 336.21,
+                    "adj_low": 331.65,
+                    "adj_close": 332.89,
+                    "adj_open": 332.82,
+                    "adj_volume": 34400850,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-05T00:00:00+0000"
+                },
+                {
+                    "open": 333.26,
+                    "high": 334.54,
+                    "low": 330.61,
+                    "close": 333.69,
+                    "volume": 33245500,
+                    "adj_high": 334.54,
+                    "adj_low": 330.61,
+                    "adj_close": 333.69,
+                    "adj_open": 333.26,
+                    "adj_volume": 33278552,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-02T00:00:00+0000"
+                },
+                {
+                    "open": 330,
+                    "high": 332.48,
+                    "low": 325.81,
+                    "close": 330.32,
+                    "volume": 36243900,
+                    "adj_high": 332.48,
+                    "adj_low": 325.81,
+                    "adj_close": 330.32,
+                    "adj_open": 330,
+                    "adj_volume": 36306346,
+                    "split_factor": 1,
+                    "dividend": 0,
+                    "name": "Apple Inc",
+                    "exchange_code": "NASDAQ",
+                    "asset_type": "Stock",
+                    "price_currency": "USD",
+                    "symbol": "AAPL",
+                    "exchange": "XNAS",
+                    "date": "2026-10-01T00:00:00+0000"
+                }
+            ]
+        }
+        self.stock_parameters = {
+            "access_key": API_KEY,
+            "symbols": None,
+            "date_from": None,
+            "date_to": None
+        }
+
+    def fetch_stock_json(self, stock_symbol):
+        today = dt.date.today()
+        thirty_day_ago = today - dt.timedelta(days=30)
+        self.stock_parameters["date_from"] = str(thirty_day_ago)
+        self.stock_parameters["date_to"] = str(today)
+        stock_symbol = stock_symbol.strip().upper()
+
+        if stock_symbol == "TEST":
+            return self.test_stock_json
+        self.stock_parameters["symbols"] = stock_symbol
+        try:
+            response = requests.get(
+                url=url_endpoint,
+                params=self.stock_parameters,
+                timeout=5,
+            )
+            return response.json()
+        except requests.exceptions.Timeout:
+            return {"error": {"message": "The stock service timed out."}}
+        except requests.exceptions.ConnectionError:
+            return {"error": {"message": "Could not connect to the stock service."}}
+
+    def analyze_json(self, fetched_json):
+        if not fetched_json["data"]:
+            return {"error":"No data available. Check the stock symbol used and for the correct parameters."}
+
+        elif len(fetched_json["data"]) == 1:
+            return {"error": "The data is not large enough to analyze"}
+
+        last_close = fetched_json["data"][0]["close"]
+        second_last_close = fetched_json["data"][1]["close"]
+        thirty_day_ago_close = fetched_json["data"][-1]["close"]
+
+        single_day_change = round(((last_close - second_last_close) / second_last_close) * 100, 2)
+        thirty_day_change = round(((last_close - thirty_day_ago_close) / thirty_day_ago_close) * 100, 2)
+        closes_list = [item["close"] for item in fetched_json["data"]][::-1]
+
+        closes_series = pd.Series(closes_list)
+        pct_change_series = closes_series.pct_change()
+        day_close_changes = [round(item*100,2) for item in pct_change_series.to_list() if type(item) is float]
+        print(day_close_changes)
+        volatility = round(pd.Series(day_close_changes).std(),2)
+        print(volatility)
+        sma_5day_series = closes_series.rolling(window=5).mean()
+        sma_20day_series = closes_series.rolling(window=20).mean()
+        sma_5day = sma_5day_series.to_list()
+        sma_20day = sma_20day_series.to_list()
+        sma_5day = [round(item,2) for item in sma_5day if type(item) is float]
+        sma_20day = [round(item,2) for item in sma_20day if type(item) is float]
+        # print(sma_5day)
+        # print(sma_20day)
+
+        if len(fetched_json["data"][0]["date"]) < 11:
+            # print("it's a string")
+            dates_list = [item["date"] for item in fetched_json["data"]][::-1]
+
+        else:
+            # print("it's not a string")
+            dates = [dt.datetime.strptime(item["date"], "%Y-%m-%dT%H:%M:%S%z") for item in fetched_json["data"]][::-1]
+            dates_list = [item.strftime("%Y/%m/%d")for item in dates]
+
+
+        return {
+            "last_close": last_close,
+            "single_day_change": single_day_change,
+            "thirty_day_change": thirty_day_change,
+            "first_close": thirty_day_ago_close,
+            "closes_list": closes_list,
+            "dates_list": dates_list,
+            "rolling_5day": sma_5day,
+            "rolling_20day": sma_20day,
+            "highest": max(closes_list),
+            "lowest": min(closes_list),
+            "volatility": volatility
+        }
+
+# if stock_symbol == "test":
+#     stock_json = {
+#         "pagination": {
+#             "limit": 100,
+#             "offset": 0,
+#             "count": 22,
+#             "total": 22
+#         },
+#         "data": [
+#             {
+#                 "open": 346.715,
+#                 "high": 349.19,
+#                 "low": 334.35,
+#                 "close": 344.63,
+#                 "volume": 67841555,
+#                 "adj_high": 349.19,
+#                 "adj_low": 334.35,
+#                 "adj_close": 344.63,
+#                 "adj_open": 346.715,
+#                 "adj_volume": 67841555,
+#                 "split_factor": 1,
+#                 "dividend": 0,
+#                 "name": "Apple Inc",
+#                 "exchange_code": "NASDAQ",
+#                 "asset_type": "Stock",
+#                 "price_currency": "USD",
+#                 "symbol": "AAPL",
+#                 "exchange": "XNAS",
+#                 "date": "2026-10-30T00:00:00+0000"
+#             },
+#             {
+#                 "open": 348,
+#                 "high": 351.43,
+#                 "low": 347.3,
+#                 "close": 348.91,
+#                 "volume": 41340227,
+#                 "adj_high": 351.43,
+#                 "adj_low": 347.3,
+#                 "adj_close": 348.91,
+#                 "adj_open": 348,
+#                 "adj_volume": 42582126,
+#                 "split_factor": 1,
+#                 "dividend": 0,
+#                 "name": "Apple Inc",
+#                 "exchange_code": "NASDAQ",
+#                 "asset_type": "Stock",
+#                 "price_currency": "USD",
+#                 "symbol": "AAPL",
+#                 "exchange": "XNAS",
+#                 "date": "2026-10-29T00:00:00+0000"
+#             },
+#             {
+#                 "open": 330,
+#                 "high": 332.48,
+#                 "low": 325.81,
+#                 "close": 330.32,
+#                 "volume": 36243900,
+#                 "adj_high": 332.48,
+#                 "adj_low": 325.81,
+#                 "adj_close": 330.32,
+#                 "adj_open": 330,
+#                 "adj_volume": 36306346,
+#                 "split_factor": 1,
+#                 "dividend": 0,
+#                 "name": "Apple Inc",
+#                 "exchange_code": "NASDAQ",
+#                 "asset_type": "Stock",
+#                 "price_currency": "USD",
+#                 "symbol": "AAPL",
+#                 "exchange": "XNAS",
+#                 "date": "2026-10-01T00:00:00+0000"
+#             }
+#         ]
+#     }
+
+# print(f"Stock: {stock_symbol}")
+# print(f"Latest Available Close: ${last_close}")
+# print(f"Previous Close: ${second_last_close}")
+# print(f"Change: {single_day_change}%\n")
+#
+# print(f"Period: 30 calendar days")
+# print(f"Latest Available Close: ${last_close}")
+# print(f"First Available Close: ${thirty_day_ago_close}")
+# print(f"Change: {thirty_day_change}%\n")

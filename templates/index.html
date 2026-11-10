@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+    <title>{% block title %}StockSearcher{% endblock %}</title>
+    <!-- Bootstrap 5.3 -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
+
+    <!-- Blog font -->
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css?family=Playfair+Display:700,900&display=swap">
+
+    <!-- Blog example custom CSS -->
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/blog.css') }}">
+</head>
+<main class="container">
+    <div class="card border-0 shadow-sm my-3">
+        <form action="{{ url_for('main_graph') }}"
+              method="post"
+              class="row g-2 align-items-center">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="col">
+                <label for="stock" class="visually-hidden">New Stock</label>
+                <input
+                        id="stock"
+                        name="stock"
+                        class="form-control form-control-lg"
+                        type="text"
+                        placeholder="search a stock"
+                        required
+                >
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-lg px-4">
+                    Search Stock
+                </button>
+            </div>
+
+        </form>
+    </div>
+    <div class="row">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        {% for message in messages %}
+        <p class="flash">{{ message }}</p>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+    <div class="nav nav-pills mb-2">
+
+        <div class="col-6 nav-item">
+            <a class="nav-link text-center {{ 'active' if view == 'stock' else '' }}"
+               href="{{ url_for('last_stock') }}">
+                Stock Details
+            </a>
+        </div>
+
+        <div class="col-6 nav-item">
+            <a class="nav-link text-center {{ 'active' if view == 'compare' else '' }}"
+               href="{{ url_for('return_graph') }}">
+                Compare Stocks
+            </a>
+        </div>
+
+    </div>
+
+    {% if stock_dict %}
+    <div class="row g-3 align-items-center">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm p-2
+                    d-flex flex-row justify-content-between align-items-center">
+
+                <!-- Left side -->
+                <div>
+                    <h4 class="mt-0">{{ stock_dict["company_name"] }}</h4>
+                    <p class="my-0">30-day performance</p>
+                </div>
+
+                <!-- Far right, vertically centered -->
+                <div class="text-end">
+                    <p class="mb-0 small">Latest close</p>
+                    <p class="mb-0"><b>{{ stock_dict["dates_list"][-1] }}</b></p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 align-items-center text-middle">
+        <div class="col-6">
+            <div class="card border-0 shadow-sm my-1 p-2">
+                <p class="mb-0 fs-4 fw-semibold">
+                    ${{ stock_dict["highest"] }}
+                </p>
+                <p class="mb-0 small text-muted">
+                    Highest close
+                </p>
+            </div>
+        </div>
+        <div class="col-6 text-end">
+            <div class="card border-0 shadow-sm my-1 p-2">
+
+                <p class="mb-0 fs-4 fw-semibold">
+                    ${{ stock_dict["lowest"] }}
+                </p>
+                <p class="mb-0 small text-muted">
+                    Lowest close
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 align-items-center text-middle">
+        <div class="col-6">
+            <div class="card border-0 shadow-sm my-1 p-2">
+                <p class="mb-0 fs-4 fw-semibold {% if stock_dict['thirty_day_change'] > 0 %}
+                    text-success
+                {% else %}
+                    text-danger
+                {% endif %}">
+                    {{ stock_dict["thirty_day_change"] }}%
+                </p>
+                <p class="mb-0 small text-muted">
+                    30-day return
+                </p>
+            </div>
+        </div>
+        <div class="col-6 text-end">
+            <div class="card border-0 shadow-sm my-1 p-2">
+                <p class="mb-0 fs-4 fw-semibold">
+                    {{ stock_dict["volatility"] }}%
+                </p>
+                <p class="mb-0 small text-muted">
+                    Daily volatility
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="stockChart"></canvas>
+    {% endif %}
+    {% if returns_dict %}
+    <canvas id="returnChart"></canvas>
+    {% endif %}
+
+    <h4>My Watchlist</h4>
+    {% if stocks %}
+    <form id="compare-form" action="{{ url_for('return_graph') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    </form>
+    <div class="card stock-card position-relative shadow-sm my-1 p-1">
+        <div class="row g-2 align-items-center">
+
+            <label class="col-auto stretched-link">
+                <input type="checkbox" name="stocks" value='{{ stocks[0].symbol }}' form="compare-form"
+                       class="visually-hidden">
+            </label>
+            <div class="col">
+                <form action="{{ url_for('stock_detail', symbol=stocks[0].symbol) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit"
+                            class="border-0 bg-transparent p-0 position-relative z-1">
+                        <b>{{ stocks[0].symbol }}</b>
+                    </button>
+                </form>
+                <div class="pb-1"> {{ stocks[0].company_name }}</div>
+            </div>
+
+            <div class="col-auto text-end">
+                <div class="pb-0 {% if returns[stocks[0].symbol] > 0 %}
+                    text-success
+                {% else %}
+                    text-danger
+                {% endif %}"><b>{{ returns[stocks[0].symbol] }}%</b>
+                </div>
+                <div class="pb-1">30-day return</div>
+
+            </div>
+            <div class="col-auto text-end me-1">
+                <form action="{{ url_for('remove_stock', stock_id=stocks[0].id) }} " class=""
+                      method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm position-relative z-1">
+                        Remove
+                    </button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+    <div class="collapse" id="moreStocks">
+        {% for stock in stocks[1:] %}
+        <div class="card stock-card position-relative shadow-sm my-1 p-1">
+            <div class="row g-2 align-items-center">
+
+                <label class="col-auto stretched-link">
+                    <input type="checkbox" name="stocks" value='{{ stock.symbol }}' form="compare-form"
+                           class="visually-hidden">
+                </label>
+                <div class="col">
+                    <form action="{{ url_for('stock_detail', symbol=stock.symbol) }}" method="POST">
+                        <!--                    <input type="hidden" name="stock" value="{{ stock.symbol }}">-->
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit"
+                                class="border-0 bg-transparent p-0 position-relative z-1">
+                            <b>{{ stock.symbol }}</b>
+                        </button>
+                    </form>
+                    <div class="pb-1"> {{ stock.company_name }}</div>
+                </div>
+                <div class="col-auto text-end">
+                    <div class="pb-0 {% if returns[stock.symbol] > 0 %}
+                    text-success
+                {% else %}
+                    text-danger
+                {% endif %}"><b>{{ returns[stock.symbol] }}% </b>
+                    </div>
+                    <div class="pb-1">30-day return</div>
+
+                </div>
+                <div class="col-auto text-end me-1">
+                    <form action="{{ url_for('remove_stock', stock_id=stock.id) }} " class=""
+                          method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-danger btn-sm position-relative z-1">
+                            Remove
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% if stocks | length > 1 %}
+    <button class="btn btn-outline-secondary"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#moreStocks"
+            aria-expanded="false"
+            aria-controls="moreStocks">
+        Show More
+    </button>
+    {% endif %}
+    <button type="submit" class="btn btn-primary btn-md px-2 my-0" form="compare-form" id="compare-btn" disabled>
+        Compare Selected Stocks
+    </button>
+
+    {% endif %}
+
+
+</main>
+
+<script>
+    const compareBtn = document.getElementById("compare-btn");
+    const checkboxes = document.querySelectorAll('input[name="stocks"]');
+
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener("change", () => {
+            const selected = document.querySelectorAll(
+                'input[name="stocks"]:checked'
+            );
+
+            if (selected.length > 2) {
+                checkbox.checked = false;
+            }
+
+            const selectedCount = document.querySelectorAll(
+                'input[name="stocks"]:checked'
+            ).length;
+
+            compareBtn.disabled = selectedCount !== 2;
+        });
+    });
+</script>
+
+{% if stock_dict %}
+<script>
+    new Chart(document.getElementById("stockChart"), {
+        type: "line",
+        data: {
+            labels: {{ stock_dict["dates_list"] | tojson  }},
+            datasets: [{
+                label: "Closing Price",
+                data: {{ stock_dict["closes_list"] | tojson }}
+            },
+            {
+                label: "5-day Rolling Close Price",
+                data: {{ stock_dict["rolling_5day"] | tojson }}
+            },
+            {
+                label: "20-day Rolling Close Price",
+                data: {{ stock_dict["rolling_20day"] | tojson }}
+            }
+            ]
+        },
+        options: {
+            scales: {
+                // Configuration for the horizontal axis
+                x: {
+                    title: {
+                      display: true,
+                      text: 'Calendar Day', // Your X-axis name
+                      color: '#111',
+                      font: {
+                        size: 16,
+                        weight: 'bold'
+                      }
+                    }
+                },
+                // Configuration for the vertical axis
+                y: {
+                    title: {
+                      display: true,
+                      text: 'Price per Share (in USD)', // Your Y-axis name
+                      color: '#111',
+                      font: {
+                        size: 16,
+                        weight: 'bold'
+                      }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% if returns_dict %}
+<script>
+    const symbolA = {{ returns_dict["stock_a"] | tojson }};
+    const symbolB = {{ returns_dict["stock_b"] | tojson }};
+    new Chart(document.getElementById("returnChart"), {
+        type: "line",
+        data: {
+            labels: {{ returns_dict["dates"] | tojson  }},
+            datasets: [{
+                label: `${symbolA} Returns`,
+                data: {{ returns_dict["stock_a_returns"] | tojson }},
+                borderColor: "blue"
+            },
+            {
+                label: `${symbolB} Returns`,
+                data: {{ returns_dict["stock_b_returns"] | tojson }},
+                borderColor: "green"
+            }]
+        },
+        options: {
+            scales: {
+                // Configuration for the horizontal axis
+                x: {
+                    title: {
+                      display: true,
+                      text: 'Calendar Day', // Your X-axis name
+                      color: '#111',
+                      font: {
+                        size: 16,
+                        weight: 'bold'
+                      }
+                    }
+                },
+                // Configuration for the vertical axis
+                y: {
+                    title: {
+                      display: true,
+                      text: 'Cumulative Percentage Return (%)', // Your Y-axis name
+                      color: '#111',
+                      font: {
+                        size: 16,
+                        weight: 'bold'
+                      }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</html>

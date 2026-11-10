@@ -1,0 +1,19 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Flask and SQLite
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# PyCharm
+.idea/
