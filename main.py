@@ -78,22 +78,30 @@ def get_cached_stock_data(stock):
 """calculates cumulative returns of 2 stocks over a 30 day period and returns a dictionary"""
 def compare_returns(stock_a, stock_b):
     stock_a_db = db.session.execute(db.select(Stock).where(Stock.symbol == stock_a)).scalar_one_or_none()
+    if stock_a_db is None:
+        return {"error": f"The stock {stock_a} no longer exists in the database."}
+
     stock_b_db = db.session.execute(db.select(Stock).where(Stock.symbol == stock_b)).scalar_one_or_none()
-    # a_dates = {'2026-10-07', '2026-10-08', '2026-10-09', '2026-10-12', '2026-10-13', '2026-10-15', '2026-10-16', '2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30', '2026-11-02', '2026-11-03'}
+    if stock_b_db is None:
+        return {"error": f"The stock {stock_b} no longer exists in the database."}
+
     a_dates = {item.date for item in stock_a_db.prices}
     b_dates = {item.date for item in stock_b_db.prices}
     common_dates = sorted(a_dates & b_dates)
     if not common_dates:
         return {"error": "No common dates found."}
+
     a_price_lookup = {price.date: float(price.close) for price in stock_a_db.prices}
     b_price_lookup = {price.date: float(price.close) for price in stock_b_db.prices}
+    cutoff_date = datetime.datetime.fromisoformat(common_dates[-1]) - datetime.timedelta(days=30)
+    cutoff_date = cutoff_date.date().isoformat()
+
+    common_dates = [item for item in common_dates if item >= cutoff_date]
     start_date = common_dates[0]
-
-    stock_a_returns = [round(((a_price_lookup[item]-a_price_lookup[start_date])/a_price_lookup[start_date])*100, 2) for item in
-                       common_dates]
-    stock_b_returns = [round(((b_price_lookup[item]-b_price_lookup[start_date])/b_price_lookup[start_date])*100, 2) for item in
-                       common_dates]
-
+    stock_a_returns = [round(((a_price_lookup[item]-a_price_lookup[start_date])/a_price_lookup[start_date])*100, 2)
+                       for item in common_dates]
+    stock_b_returns = [round(((b_price_lookup[item]-b_price_lookup[start_date])/b_price_lookup[start_date])*100, 2)
+                       for item in common_dates]
 
     return {
         "dates": common_dates,
@@ -263,6 +271,7 @@ def return_graph():
 
     returns_dict = compare_returns(selected_stocks[0], selected_stocks[1])
     if "error" in returns_dict:
+        session.pop("selected_stocks", None)
         flash(returns_dict["error"])
         return redirect(url_for("main_graph"))
 

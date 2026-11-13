@@ -1,9 +1,6 @@
-from json.decoder import NaN
 
 import requests
 import os
-# import smtplib
-# import json
 import datetime as dt
 import pandas as pd
 
