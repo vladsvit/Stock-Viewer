@@ -6,7 +6,7 @@ from flask import Flask, render_template, redirect, url_for, abort, flash, reque
 from flask_bootstrap import Bootstrap5
 from flask_wtf.csrf import CSRFProtect
 from models import db, Stock
-from stock_service import save_stock_prices, get_cached_stock_data, get_watchlist_data, find_stock, delete_stock
+from stock_service import save_stock_prices, get_cached_stock_data, get_watchlist_data, find_stock_data, delete_stock, find_stock
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv("FLASK_SECRET_KEY")
@@ -29,46 +29,20 @@ def inject_watchlist():
 
 @app.route('/', methods=["POST", "GET"])
 def main_graph():
-    today = str(datetime.date.today())
     if request.method == "POST":
         stock_symbol = request.form["stock"].strip().upper()
-        stock = find_stock(stock_symbol)
-        # A missing stock or an outdated cache requires fetching.
-        needs_fetch = (
-                stock is None
-                or stock.last_fetched_at != str(today)
-        )
+        data = find_stock_data(stock_symbol)
+        if "error" in data:
+            flash("Unable to retrieve stock prices.")
+            return redirect(url_for("main_graph"))
 
-        if needs_fetch:
-            data_json = fetch_stock_json(stock_symbol)
-
-            # Don't save an invalid response.
-            if "error" in data_json or not data_json.get("data"):
-                flash("Unable to retrieve stock prices.")
-                return redirect(url_for("main_graph"))
-
-            if stock is None:
-                stock = Stock(symbol=stock_symbol,company_name=data_json["data"][0]["name"])
-                db.session.add(stock)
-
-                # Assigns the database-generated stock.id.
-                db.session.flush()
-
-            save_stock_prices(stock, data_json)
-
-            stock.last_fetched_at = today
-            db.session.commit()
-
-        else:
-            data_json = get_cached_stock_data(stock)
-
-        stock_dict = analyze_json(data_json)
+        stock_dict = analyze_json(data)
         if "error" in stock_dict:
             print(stock_dict["error"])
             flash(f'There is an error. {stock_dict["error"]}')
             return redirect(url_for("main_graph"))
 
-        stock_dict["company_name"] = stock.company_name
+        stock_dict["company_name"] = data["data"][0]["name"]
         return render_template("index.html", stock_dict=stock_dict, returns_dict=None, view="stock")
     return render_template("index.html", stock_dict=None, returns_dict=None)
 
@@ -76,7 +50,6 @@ def main_graph():
 def stock_detail(symbol):
     session["last_stock"] = symbol
     stock = find_stock(symbol)
-
     if stock is None:
         abort(404, description="Stock not found in the watchlist.")
 
@@ -84,13 +57,11 @@ def stock_detail(symbol):
     stock_dict = analyze_json(data_json)
     stock_dict["company_name"] = stock.company_name
 
-
     return render_template("index.html", stock_dict=stock_dict, view="stock")
 
 @app.route("/stock")
 def last_stock():
     symbol = session.get("last_stock")
-
     if symbol:
         return redirect(url_for("stock_detail", symbol=symbol))
 
@@ -125,7 +96,6 @@ def return_graph():
 def remove_stock(stock_id):
     delete_stock(stock_id)
     return redirect(url_for("main_graph"))
-
 
 if __name__ == '__main__':
     app.run(debug=True, port=5004)

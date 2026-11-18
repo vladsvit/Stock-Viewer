@@ -1,12 +1,36 @@
 from models import db, Stock, StockPrice
 from decimal import Decimal
 import datetime
+from api import fetch_stock_json
 
 
 
 def find_stock(stock_symbol):
     stock = db.session.execute(db.select(Stock).where(Stock.symbol == stock_symbol)).scalar_one_or_none()
     return stock
+
+def find_stock_data(stock_symbol):
+    stock = find_stock(stock_symbol)
+    today = str(datetime.date.today())
+    needs_fetch = (stock is None or stock.last_fetched_at != str(today))
+    if needs_fetch:
+        data_json = fetch_stock_json(stock_symbol)
+
+        if "error" in data_json or not data_json.get("data"):
+            return "error"
+
+        if stock is None:
+            stock = Stock(symbol=stock_symbol, company_name=data_json["data"][0]["name"])
+            db.session.add(stock)
+            db.session.flush()
+
+        save_stock_prices(stock, data_json)
+        stock.last_fetched_at = today
+        db.session.commit()
+
+    else:
+        data_json = get_cached_stock_data(stock)
+    return data_json
 
 def delete_stock(stock_id):
     stock = db.get_or_404(Stock, stock_id)
@@ -75,6 +99,7 @@ def get_cached_stock_data(stock):
     }
 
     return data_json
+
 
 def get_watchlist_data():
     stocks = db.session.execute(db.select(Stock).order_by(Stock.symbol)).scalars().all()
