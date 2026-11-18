@@ -1,5 +1,5 @@
 import os
-from api import StockLens
+from api import fetch_stock_json, analyze_json
 import datetime
 from flask import Flask, render_template, redirect, url_for, abort, flash, request, session
 from typing import List
@@ -9,6 +9,8 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import Integer, String, Numeric
 from flask_wtf.csrf import CSRFProtect
 from decimal import Decimal
+from models import db, Stock, StockPrice
+
 
 def save_stock_prices(stock, data_json):
 
@@ -122,52 +124,11 @@ app.config['SECRET_KEY'] = os.getenv("FLASK_SECRET_KEY")
 Bootstrap5(app)
 CSRFProtect(app)
 
-
-class Base(DeclarativeBase):
-    pass
-
-
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///stock_data.db'
-db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
-
-class Stock(db.Model):
-    __tablename__ = "stock"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    symbol: Mapped[str] = mapped_column(String(250), unique=True, nullable=False)
-    company_name: Mapped[str | None] = mapped_column(String(250), unique=False)
-    last_fetched_at: Mapped[str | None] = mapped_column(String(250), unique=False, nullable=True)
-
-    prices: Mapped[List["StockPrice"]] = relationship(back_populates="stock", cascade="all, delete-orphan")
-
-
-class StockPrice(db.Model):
-    __tablename__ = "stock_prices"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    stock_id: Mapped[int] = mapped_column(Integer, db.ForeignKey("stock.id"))
-
-    date: Mapped[str] = mapped_column(nullable=True)
-    open: Mapped[Decimal | None] = mapped_column(Numeric(14, 4))
-    high: Mapped[Decimal | None] = mapped_column(Numeric(14, 4))
-    low: Mapped[Decimal | None] = mapped_column(Numeric(14, 4))
-    close: Mapped[Decimal | None] = mapped_column(Numeric(14, 4))
-    volume: Mapped[int | None] = mapped_column(db.BigInteger)
-    adj_close: Mapped[Decimal | None] = mapped_column(db.Numeric(14, 4))
-
-    stock: Mapped["Stock"] = relationship(back_populates="prices")
-    __table_args__ = (
-        db.UniqueConstraint(
-            "stock_id",
-            "date",
-            name="unique_stock_date"
-        ),
-    )
 with app.app_context():
     db.create_all()
-
-stock_lens = StockLens()
 
 @app.context_processor
 def inject_watchlist():
@@ -196,7 +157,7 @@ def main_graph():
         )
 
         if needs_fetch:
-            data_json = stock_lens.fetch_stock_json(stock_symbol)
+            data_json = fetch_stock_json(stock_symbol)
 
             # Don't save an invalid response.
             if "error" in data_json or not data_json.get("data"):
@@ -218,7 +179,7 @@ def main_graph():
         else:
             data_json = get_cached_stock_data(stock)
 
-        stock_dict = stock_lens.analyze_json(data_json)
+        stock_dict = analyze_json(data_json)
         if "error" in stock_dict:
             print(stock_dict["error"])
             flash(f'There is an error. {stock_dict["error"]}')
@@ -237,7 +198,7 @@ def stock_detail(symbol):
         abort(404, description="Stock not found in the watchlist.")
 
     data_json = get_cached_stock_data(stock)
-    stock_dict = stock_lens.analyze_json(data_json)
+    stock_dict = analyze_json(data_json)
     stock_dict["company_name"] = stock.company_name
 
 
