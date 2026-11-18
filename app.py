@@ -3,86 +3,10 @@ from api import fetch_stock_json
 from analytics import analyze_json, compare_returns
 import datetime
 from flask import Flask, render_template, redirect, url_for, abort, flash, request, session
-from typing import List
 from flask_bootstrap import Bootstrap5
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import Integer, String, Numeric
 from flask_wtf.csrf import CSRFProtect
-from decimal import Decimal
-from models import db, Stock, StockPrice
-
-
-def save_stock_prices(stock, data_json):
-
-    for record in data_json["data"]:
-        day = record["date"][:10]
-
-        existing_price = db.session.execute(
-            db.select(StockPrice).where(
-                StockPrice.stock_id == stock.id,
-                StockPrice.date == day
-            )
-        ).scalar_one_or_none()
-
-        if existing_price is None:
-            new_price = StockPrice(
-                stock_id=stock.id,
-                date=day,
-                close=Decimal(str(record["close"])),
-                open=Decimal(str(record["open"])),
-                high=Decimal(str(record["high"])),
-                low=Decimal(str(record["low"])),
-                volume=int(record["volume"]),
-                adj_close=Decimal(str(record["adj_close"])),
-            )
-
-            db.session.add(new_price)
-
-def get_cached_stock_data(stock):
-    today = datetime.date.today()
-
-    if str(today) != stock.last_fetched_at:
-        last_fetched_at = datetime.datetime.fromisoformat(stock.last_fetched_at)
-        start_date = last_fetched_at - datetime.timedelta(days=30)
-        print("Cached data is old. Showing the latest cached data.")
-        stock_prices = db.session.execute(
-            db.select(StockPrice)
-            .where(
-                StockPrice.stock_id == stock.id,
-                StockPrice.date.between(start_date, last_fetched_at)
-            )
-            .order_by(StockPrice.date.desc())
-        ).scalars().all()
-    else:
-        start_date = today - datetime.timedelta(days=30)
-        print("Latest data available")
-        stock_prices = db.session.execute(
-            db.select(StockPrice)
-            .where(
-                StockPrice.stock_id == stock.id,
-                StockPrice.date.between(start_date, today)
-            )
-            .order_by(StockPrice.date.desc())
-        ).scalars().all()
-
-    data_json = {
-        "data": [
-            {
-                "close": float(price.close),
-                "date": price.date
-            }
-            for price in stock_prices
-        ]
-    }
-
-    return data_json
-
-def get_watchlist_data():
-    stocks = db.session.execute(db.select(Stock).order_by(Stock.symbol)).scalars().all()
-    returns = {item.symbol: round(100*(item.prices[-1].close - item.prices[0].close)/item.prices[0].close, 2) for item in stocks}
-    return stocks, returns
-
+from models import db, Stock
+from stock_service import save_stock_prices, get_cached_stock_data, get_watchlist_data, find_stock, delete_stock
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv("FLASK_SECRET_KEY")
@@ -106,15 +30,9 @@ def inject_watchlist():
 @app.route('/', methods=["POST", "GET"])
 def main_graph():
     today = str(datetime.date.today())
-
     if request.method == "POST":
         stock_symbol = request.form["stock"].strip().upper()
-        stock = db.session.execute(
-            db.select(Stock).where(
-                Stock.symbol == stock_symbol
-            )
-        ).scalar_one_or_none()
-
+        stock = find_stock(stock_symbol)
         # A missing stock or an outdated cache requires fetching.
         needs_fetch = (
                 stock is None
@@ -157,7 +75,7 @@ def main_graph():
 @app.route("/stock/<symbol>", methods=["POST", "GET"])
 def stock_detail(symbol):
     session["last_stock"] = symbol
-    stock = db.session.execute(db.select(Stock).where(Stock.symbol == symbol)).scalar_one_or_none()
+    stock = find_stock(symbol)
 
     if stock is None:
         abort(404, description="Stock not found in the watchlist.")
@@ -205,12 +123,7 @@ def return_graph():
 
 @app.route('/delete/<stock_id>', methods=["POST"])
 def remove_stock(stock_id):
-    stock = db.get_or_404(Stock, stock_id)
-    print(f"Stock {stock.symbol} deleted")
-
-    # Deleting the stock is disabled temporarily to reduce necesary API calls, funcionality works right now
-    db.session.delete(stock)
-    db.session.commit()
+    delete_stock(stock_id)
     return redirect(url_for("main_graph"))
 
 
