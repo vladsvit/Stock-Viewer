@@ -1,5 +1,6 @@
 import os
-from api import fetch_stock_json, analyze_json
+from api import fetch_stock_json
+from analytics import analyze_json, compare_returns
 import datetime
 from flask import Flask, render_template, redirect, url_for, abort, flash, request, session
 from typing import List
@@ -76,42 +77,6 @@ def get_cached_stock_data(stock):
     }
 
     return data_json
-
-"""calculates cumulative returns of 2 stocks over a 30 day period and returns a dictionary"""
-def compare_returns(stock_a, stock_b):
-    stock_a_db = db.session.execute(db.select(Stock).where(Stock.symbol == stock_a)).scalar_one_or_none()
-    if stock_a_db is None:
-        return {"error": f"The stock {stock_a} no longer exists in the database."}
-
-    stock_b_db = db.session.execute(db.select(Stock).where(Stock.symbol == stock_b)).scalar_one_or_none()
-    if stock_b_db is None:
-        return {"error": f"The stock {stock_b} no longer exists in the database."}
-
-    a_dates = {item.date for item in stock_a_db.prices}
-    b_dates = {item.date for item in stock_b_db.prices}
-    common_dates = sorted(a_dates & b_dates)
-    if not common_dates:
-        return {"error": "No common dates found."}
-
-    a_price_lookup = {price.date: float(price.close) for price in stock_a_db.prices}
-    b_price_lookup = {price.date: float(price.close) for price in stock_b_db.prices}
-    cutoff_date = datetime.datetime.fromisoformat(common_dates[-1]) - datetime.timedelta(days=30)
-    cutoff_date = cutoff_date.date().isoformat()
-
-    common_dates = [item for item in common_dates if item >= cutoff_date]
-    start_date = common_dates[0]
-    stock_a_returns = [round(((a_price_lookup[item]-a_price_lookup[start_date])/a_price_lookup[start_date])*100, 2)
-                       for item in common_dates]
-    stock_b_returns = [round(((b_price_lookup[item]-b_price_lookup[start_date])/b_price_lookup[start_date])*100, 2)
-                       for item in common_dates]
-
-    return {
-        "dates": common_dates,
-        "stock_a_returns": stock_a_returns,
-        "stock_b_returns": stock_b_returns,
-        "stock_a": stock_a,
-        "stock_b": stock_b
-    }
 
 def get_watchlist_data():
     stocks = db.session.execute(db.select(Stock).order_by(Stock.symbol)).scalars().all()
