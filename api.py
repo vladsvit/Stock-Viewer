@@ -33,7 +33,7 @@ def fetch_stock_json(stock_symbol):
         )
         return response.json()
     except requests.exceptions.Timeout:
-        return {"error": {"message": "The stock service timed out."}}
+        return {"error": "The stock service timed out."}
     except requests.exceptions.ConnectionError:
-        return {"error": {"message": "Could not connect to the stock service."}}
+        return {"error": "Could not connect to the stock service."}
 

@@ -16,8 +16,11 @@ def find_stock_data(stock_symbol):
     if needs_fetch:
         data_json = fetch_stock_json(stock_symbol)
 
-        if "error" in data_json or not data_json.get("data"):
-            return "error"
+        if "error" in data_json:
+            return data_json
+
+        elif not data_json.get("data"):
+            return {"error": "No data available for this stock"}
 
         if stock is None:
             stock = Stock(symbol=stock_symbol, company_name=data_json["data"][0]["name"])
@@ -30,7 +33,7 @@ def find_stock_data(stock_symbol):
 
     else:
         data_json = get_cached_stock_data(stock)
-    return data_json
+    return {"data_json": data_json, "company_name": stock.company_name}
 
 def delete_stock(stock_id):
     stock = db.get_or_404(Stock, stock_id)
@@ -99,6 +102,21 @@ def get_cached_stock_data(stock):
     }
 
     return data_json
+
+def get_prices_for_stock(stock_symbol_a, stock_symbol_b):
+    stock_a_db = db.session.execute(db.select(Stock).where(Stock.symbol == stock_symbol_a)).scalar_one_or_none()
+    if stock_a_db is None:
+        return {"error": f"The stock {stock_symbol_a} does not exist in the database."}
+
+    stock_b_db = db.session.execute(db.select(Stock).where(Stock.symbol == stock_symbol_b)).scalar_one_or_none()
+    if stock_b_db is None:
+        return {"error": f"The stock {stock_symbol_b} does not exist in in the database."}
+
+
+    a_price_lookup = {price.date: float(price.close) for price in stock_a_db.prices}
+    b_price_lookup = {price.date: float(price.close) for price in stock_b_db.prices}
+
+    return {"stock_a":a_price_lookup, "stock_b":b_price_lookup}
 
 
 def get_watchlist_data():

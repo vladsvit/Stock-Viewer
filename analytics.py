@@ -1,6 +1,5 @@
 import datetime as dt
 import pandas as pd
-from models import db, Stock
 import datetime
 
 def analyze_json(fetched_json):
@@ -58,23 +57,15 @@ def analyze_json(fetched_json):
     }
 
 """calculates cumulative returns of 2 stocks over a 30 day period and returns a dictionary"""
-def compare_returns(stock_a, stock_b):
-    stock_a_db = db.session.execute(db.select(Stock).where(Stock.symbol == stock_a)).scalar_one_or_none()
-    if stock_a_db is None:
-        return {"error": f"The stock {stock_a} no longer exists in the database."}
-
-    stock_b_db = db.session.execute(db.select(Stock).where(Stock.symbol == stock_b)).scalar_one_or_none()
-    if stock_b_db is None:
-        return {"error": f"The stock {stock_b} no longer exists in the database."}
-
-    a_dates = {item.date for item in stock_a_db.prices}
-    b_dates = {item.date for item in stock_b_db.prices}
+def compare_returns(prices_dict):
+    a_dates = {key for key in prices_dict["stock_a"]}
+    b_dates = {key for key in prices_dict["stock_b"]}
     common_dates = sorted(a_dates & b_dates)
     if not common_dates:
         return {"error": "No common dates found."}
 
-    a_price_lookup = {price.date: float(price.close) for price in stock_a_db.prices}
-    b_price_lookup = {price.date: float(price.close) for price in stock_b_db.prices}
+    a_price_lookup = prices_dict["stock_a"]
+    b_price_lookup = prices_dict["stock_b"]
     cutoff_date = datetime.datetime.fromisoformat(common_dates[-1]) - datetime.timedelta(days=30)
     cutoff_date = cutoff_date.date().isoformat()
 
@@ -89,6 +80,4 @@ def compare_returns(stock_a, stock_b):
         "dates": common_dates,
         "stock_a_returns": stock_a_returns,
         "stock_b_returns": stock_b_returns,
-        "stock_a": stock_a,
-        "stock_b": stock_b
     }

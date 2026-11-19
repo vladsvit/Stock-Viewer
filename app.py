@@ -1,12 +1,11 @@
 import os
-from api import fetch_stock_json
 from analytics import analyze_json, compare_returns
-import datetime
 from flask import Flask, render_template, redirect, url_for, abort, flash, request, session
 from flask_bootstrap import Bootstrap5
 from flask_wtf.csrf import CSRFProtect
-from models import db, Stock
-from stock_service import save_stock_prices, get_cached_stock_data, get_watchlist_data, find_stock_data, delete_stock, find_stock
+from models import db
+from stock_service import get_cached_stock_data, get_watchlist_data, find_stock_data, delete_stock, \
+    find_stock, get_prices_for_stock
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv("FLASK_SECRET_KEY")
@@ -33,16 +32,16 @@ def main_graph():
         stock_symbol = request.form["stock"].strip().upper()
         data = find_stock_data(stock_symbol)
         if "error" in data:
-            flash("Unable to retrieve stock prices.")
+            flash(data["error"])
             return redirect(url_for("main_graph"))
 
-        stock_dict = analyze_json(data)
+        stock_dict = analyze_json(data["data_json"])
         if "error" in stock_dict:
             print(stock_dict["error"])
             flash(f'There is an error. {stock_dict["error"]}')
             return redirect(url_for("main_graph"))
 
-        stock_dict["company_name"] = data["data"][0]["name"]
+        stock_dict["company_name"] = data["company_name"]
         return render_template("index.html", stock_dict=stock_dict, returns_dict=None, view="stock")
     return render_template("index.html", stock_dict=None, returns_dict=None)
 
@@ -84,12 +83,20 @@ def return_graph():
     if len(selected_stocks) != 2:
         return render_template("index.html", stock_dict=None, returns_dict=None ,view="compare")
 
-    returns_dict = compare_returns(selected_stocks[0], selected_stocks[1])
+    stock_prices_dicts = get_prices_for_stock(selected_stocks[0], selected_stocks[1])
+    if "error" in stock_prices_dicts:
+        session.pop("selected_stocks", None)
+        flash(stock_prices_dicts["error"])
+        return redirect(url_for("main_graph"))
+
+    returns_dict = compare_returns(stock_prices_dicts)
     if "error" in returns_dict:
         session.pop("selected_stocks", None)
         flash(returns_dict["error"])
         return redirect(url_for("main_graph"))
 
+    returns_dict["stock_a"] = selected_stocks[0]
+    returns_dict["stock_b"] = selected_stocks[1]
     return render_template("index.html",stock_dict=None, returns_dict=returns_dict, view="compare")
 
 @app.route('/delete/<stock_id>', methods=["POST"])
