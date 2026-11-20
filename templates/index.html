@@ -171,15 +171,18 @@
                 </form>
                 <div class="pb-1"> {{ stocks[0].company_name }}</div>
             </div>
-
-            <div class="col-auto text-end">
-                <div class="pb-0 {% if returns[stocks[0].symbol] > 0 %}
+            <div class="col-auto text-end small">
+                <div>30-day return:</div>
+                <div>Latest close:</div>
+            </div>
+            <div class="col-auto text-start">
+                <div class="pb-0 {% if returns[stocks[0].symbol]['return'] > 0 %}
                     text-success
                 {% else %}
                     text-danger
-                {% endif %}"><b>{{ returns[stocks[0].symbol] }}%</b>
+                {% endif %}"><b>{{ returns[stocks[0].symbol]['return'] }}%</b>
                 </div>
-                <div class="pb-1">30-day return</div>
+                <div class="pb-1 small">{{ returns[stocks[0].symbol]['latest_close'] }}</div>
 
             </div>
             <div class="col-auto text-end me-1">
@@ -214,14 +217,18 @@
                     </form>
                     <div class="pb-1"> {{ stock.company_name }}</div>
                 </div>
-                <div class="col-auto text-end">
-                    <div class="pb-0 {% if returns[stock.symbol] > 0 %}
+                <div class="col-auto text-end small">
+                    <div>30-day return:</div>
+                    <div>Latest close:</div>
+                </div>
+                <div class="col-auto text-start">
+                    <div class="pb-0 {% if returns[stock.symbol]['return'] > 0 %}
                     text-success
                 {% else %}
                     text-danger
-                {% endif %}"><b>{{ returns[stock.symbol] }}% </b>
+                {% endif %}"><b>{{ returns[stock.symbol]['return'] }}% </b>
                     </div>
-                    <div class="pb-1">30-day return</div>
+                    <div class="pb-1 small">{{ returns[stock.symbol]['latest_close'] }}</div>
 
                 </div>
                 <div class="col-auto text-end me-1">

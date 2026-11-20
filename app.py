@@ -3,7 +3,7 @@ from analytics import analyze_json, compare_returns
 from flask import Flask, render_template, redirect, url_for, abort, flash, request, session
 from flask_bootstrap import Bootstrap5
 from flask_wtf.csrf import CSRFProtect
-from models import db
+from database import init_database, create_tables
 from stock_service import get_cached_stock_data, get_watchlist_data, find_stock_data, delete_stock, \
     find_stock, get_prices_for_stock
 
@@ -12,11 +12,8 @@ app.config['SECRET_KEY'] = os.getenv("FLASK_SECRET_KEY")
 Bootstrap5(app)
 CSRFProtect(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///stock_data.db'
-db.init_app(app)
-
-with app.app_context():
-    db.create_all()
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///stock_data.db")
+init_database(app)
 
 @app.context_processor
 def inject_watchlist():
@@ -105,4 +102,5 @@ def remove_stock(stock_id):
     return redirect(url_for("main_graph"))
 
 if __name__ == '__main__':
+    create_tables(app)
     app.run(debug=True, port=5004)

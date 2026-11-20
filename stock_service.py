@@ -121,5 +121,6 @@ def get_prices_for_stock(stock_symbol_a, stock_symbol_b):
 
 def get_watchlist_data():
     stocks = db.session.execute(db.select(Stock).order_by(Stock.symbol)).scalars().all()
-    returns = {item.symbol: round(100*(item.prices[-1].close - item.prices[0].close)/item.prices[0].close, 2) for item in stocks}
+    returns = {item.symbol: {"return": round(100*(item.prices[-1].close - item.prices[0].close)/item.prices[0].close, 2),
+                             "latest_close": item.prices[-1].date} for item in stocks}
     return stocks, returns
